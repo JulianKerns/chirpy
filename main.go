@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	db "github.com/JulianKerns/GoProjects/chirpy/internal/database"
+	db "github.com/JulianKerns/chirpy/internal/database"
 )
 
 type apiConfig struct {
@@ -13,10 +13,14 @@ type apiConfig struct {
 
 func main() {
 	const port = "8080"
-	const filepath string = "/home/julian_k/workspace/github.com/JulianKerns/GoProjects/chirpy"
+	const filepath string = "/home/julian_k/workspace/github.com/JulianKerns/GoProjects/chirpy/database.json"
 	mux := http.NewServeMux()
 	config := apiConfig{
 		fileServerHits: 0,
+	}
+	_, err := db.NewDB(filepath)
+	if err != nil {
+		log.Fatalln("could not create the database.json file")
 	}
 
 	mux.Handle("/app/", config.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir("./app")))))
@@ -36,7 +40,6 @@ func main() {
 		Addr:    ":" + port,
 		Handler: corsMux,
 	}
-	database, err := db.NewDB(filepath)
 
 	log.Printf("Serving on port: %s\n", port)
 	log.Fatal(server.ListenAndServe())

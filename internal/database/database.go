@@ -1,6 +1,8 @@
 package database
 
 import (
+	"errors"
+	"io/fs"
 	"os"
 	"sync"
 )
@@ -20,8 +22,10 @@ type DB struct {
 
 func NewDB(path string) (*DB, error) {
 	_, err := os.ReadFile(path)
-	if err == os.ErrNotExist {
-		os.WriteFile(path, []byte(""), 0100644)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			os.WriteFile(path, []byte(""), 0100644)
+		}
 	}
 	mutex := &sync.RWMutex{}
 	newDB := &DB{
