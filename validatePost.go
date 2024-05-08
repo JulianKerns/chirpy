@@ -11,57 +11,56 @@ func validateChirp(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Content string `json:"body"`
 	}
+	const characterMax int = 140
 
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
-
 	err := decoder.Decode(&params)
 
 	if err != nil {
-		log.Printf("Error decoding the request parameters %s", err)
-		w.WriteHeader(500)
+		respondError(w, http.StatusInternalServerError, "Couldnt decode the Parameters")
 		return
 	}
 	clean := cleanBody(params.Content)
 	contentLength := len(clean)
-	log.Println(contentLength)
+
 	type responseVal struct {
 		Valid string `json:"cleaned_body"`
+	}
+
+	if contentLength > characterMax {
+		respondError(w, http.StatusBadRequest, "Chirpy is too long")
+		return
+
+	}
+	respondWithJSON(w, http.StatusOK, responseVal{
+		Valid: clean})
+}
+
+func respondError(w http.ResponseWriter, code int, msg string) {
+	if code > 499 {
+		log.Printf("Respongind with 5XX error: %s", msg)
 	}
 	type responseErr struct {
 		Error string `json:"error"`
 	}
 
-	if contentLength > 140 {
-		answerBody := responseErr{
-			Error: "Chirp is too long",
-		}
+	respondWithJSON(w, code, responseErr{
+		Error: msg,
+	})
+}
 
-		data, err := json.Marshal(answerBody)
-		if err != nil {
-			log.Printf("Error decoding the request parameters %s", err)
-			w.WriteHeader(500)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(400)
-		w.Write([]byte(data))
+func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
+	w.Header().Set("Content-Type", "application/json")
 
-	} else {
-		answerBody := responseVal{
-			Valid: clean,
-		}
-		data, err := json.Marshal(answerBody)
-		if err != nil {
-			log.Printf("Error decoding the request parameters %s", err)
-			w.WriteHeader(500)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(200)
-		w.Write([]byte(data))
+	data, err := json.Marshal(payload)
+	if err != nil {
+		log.Printf("Error decoding the request parameters %s", err)
+		w.WriteHeader(500)
+		return
 	}
-
+	w.WriteHeader(code)
+	w.Write(data)
 }
 
 func cleanBody(msg string) string {

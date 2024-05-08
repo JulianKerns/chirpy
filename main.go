@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"net/http"
+
+	db "github.com/JulianKerns/GoProjects/chirpy/internal/database"
 )
 
 type apiConfig struct {
@@ -11,6 +13,7 @@ type apiConfig struct {
 
 func main() {
 	const port = "8080"
+	const filepath string = "/home/julian_k/workspace/github.com/JulianKerns/GoProjects/chirpy"
 	mux := http.NewServeMux()
 	config := apiConfig{
 		fileServerHits: 0,
@@ -33,6 +36,7 @@ func main() {
 		Addr:    ":" + port,
 		Handler: corsMux,
 	}
+	database, err := db.NewDB(filepath)
 
 	log.Printf("Serving on port: %s\n", port)
 	log.Fatal(server.ListenAndServe())
