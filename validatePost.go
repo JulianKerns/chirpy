@@ -5,13 +5,18 @@ import (
 	"log"
 	"net/http"
 	"strings"
+
+	db "github.com/JulianKerns/chirpy/internal/database"
 )
+
+//func postChirp()
 
 func validateChirp(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Content string `json:"body"`
 	}
 	const characterMax int = 140
+	const filepath string = "/home/julian_k/workspace/github.com/JulianKerns/GoProjects/chirpy/database.json"
 
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
@@ -35,6 +40,13 @@ func validateChirp(w http.ResponseWriter, r *http.Request) {
 	}
 	respondWithJSON(w, http.StatusOK, responseVal{
 		Valid: clean})
+
+	database, err := db.NewDB(filepath)
+	if err != nil {
+		log.Fatalln("could not create the database.json file")
+	}
+
+	database.CreateChirp(params.Content)
 }
 
 func respondError(w http.ResponseWriter, code int, msg string) {
