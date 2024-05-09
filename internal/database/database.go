@@ -3,10 +3,10 @@ package database
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/fs"
 	"log"
 	"os"
+	"sort"
 	"sync"
 )
 
@@ -36,7 +36,7 @@ func NewDB(path string) (*DB, error) {
 	_, err := os.ReadFile(path)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			os.WriteFile(path, []byte(""), 0100644)
+			os.WriteFile(path, []byte("{}"), 0100644)
 		}
 	}
 	mutex := &sync.RWMutex{}
@@ -55,20 +55,14 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
 		Id:   idCounter,
 		Body: body,
 	}
-	content, err := json.Marshal(NewChirp)
-	if err != nil {
-		return Chirp{}, err
-	}
-	os.WriteFile(db.path, content, 0100644)
-	storage, err := db.loadDB()
 
+	storage, err := db.loadDB()
 	if err != nil {
-		log.Fatalf("%s", err)
+		log.Printf("%s", err)
 		return Chirp{}, err
 	}
 
 	storage.Chirps[idCounter] = NewChirp
-	fmt.Println(storage)
 	increase(&idCounter)
 	db.writeDB(storage)
 
@@ -85,6 +79,8 @@ func (db *DB) GetChirps() ([]Chirp, error) {
 	for _, v := range storage.Chirps {
 		allChirps = append(allChirps, v)
 	}
+	sort.Slice(allChirps, func(i, j int) bool { return allChirps[i].Id < allChirps[j].Id })
+
 	return allChirps, nil
 }
 

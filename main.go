@@ -27,7 +27,9 @@ func main() {
 
 	mux.HandleFunc("GET /api/healthz", readinessHandler)
 
-	mux.HandleFunc("POST /api/chirp", validateChirp)
+	mux.HandleFunc("POST /api/chirps", validateChirp)
+
+	mux.HandleFunc("GET /api/chirps", validateChirp)
 
 	corsMux := middlewareCors(mux)
 	server := &http.Server{
