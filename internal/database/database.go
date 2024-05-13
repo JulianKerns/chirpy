@@ -33,16 +33,14 @@ func increase(i *int) int {
 }
 
 func NewDB(path string) (*DB, error) {
-	_, err := os.ReadFile(path)
-	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			os.WriteFile(path, []byte("{}"), 0100644)
-		}
-	}
 	mutex := &sync.RWMutex{}
 	newDB := &DB{
 		path: path,
 		mux:  mutex,
+	}
+	errDB := newDB.ensure()
+	if errDB != nil {
+		return &DB{}, errDB
 	}
 	return newDB, nil
 }
@@ -84,16 +82,16 @@ func (db *DB) GetChirps() ([]Chirp, error) {
 	return allChirps, nil
 }
 
-//func (db *DB) ensure() error {
-//	_, err := os.ReadFile(db.path)
-//	if err != nil {
-//		if errors.Is(err, os.ErrNotExist) {
-//			os.WriteFile(db.path, []byte(""), 0100644)
-//			return nil
-//		}
-//	}
-//	return err
-//}
+func (db *DB) ensure() error {
+	_, err := os.ReadFile(db.path)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			os.WriteFile(db.path, []byte("{}"), 0100644)
+			return nil
+		}
+	}
+	return err
+}
 
 func (db *DB) writeDB(dbStructure DBstructure) error {
 	db.mux.Lock()
