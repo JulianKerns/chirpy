@@ -53,6 +53,8 @@ func main() {
 
 	mux.HandleFunc("POST /api/users", config.createUser)
 
+	mux.HandleFunc("POST /api/login", config.loginUser)
+
 	corsMux := middlewareCors(mux)
 	server := &http.Server{
 		Addr:    ":" + port,

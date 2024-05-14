@@ -4,35 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"io/fs"
-	"log"
 	"os"
-	"sort"
 	"sync"
 )
 
-type DB struct {
-	path string
-	mux  *sync.RWMutex
-}
-
-type Chirp struct {
-	Id   int    `json:"id"`
-	Body string `json:"body"`
-}
-
-type User struct {
-	Id    int    `json:"id"`
-	Email string `json:"email"`
-}
-
 type DBstructure struct {
-	Chirps map[int]Chirp `json:"chirps"`
-	Users  map[int]User  `json:"users"`
+	Chirps map[int]Chirp        `json:"chirps"`
+	Users  map[int]DatabaseUser `json:"users"`
 }
-
-var userCounter int = 1
-
-var idCounter int = 1
 
 func increase(i *int) int {
 	*i++
@@ -51,62 +30,6 @@ func NewDB(path string) (*DB, error) {
 		return &DB{}, errDB
 	}
 	return newDB, nil
-}
-
-func (db *DB) CreateUser(email string) (User, error) {
-	if email == "" {
-		return User{}, errors.New("cant create a User with no email")
-	}
-	NewUser := User{
-		Id:    userCounter,
-		Email: email,
-	}
-	storage, err := db.loadDB()
-	if err != nil {
-		log.Printf("%s", err)
-		return User{}, err
-	}
-	storage.Users[userCounter] = NewUser
-	increase(&userCounter)
-	db.writeDB(storage)
-	return NewUser, nil
-}
-
-func (db *DB) CreateChirp(body string) (Chirp, error) {
-	if body == "" {
-		return Chirp{}, errors.New("cant create a Chirp with an empty body")
-	}
-	NewChirp := Chirp{
-		Id:   idCounter,
-		Body: body,
-	}
-
-	storage, err := db.loadDB()
-	if err != nil {
-		log.Printf("%s", err)
-		return Chirp{}, err
-	}
-
-	storage.Chirps[idCounter] = NewChirp
-	increase(&idCounter)
-	db.writeDB(storage)
-
-	return NewChirp, nil
-
-}
-
-func (db *DB) GetChirps() ([]Chirp, error) {
-	storage, err := db.loadDB()
-	allChirps := []Chirp{}
-	if err != nil {
-		return []Chirp{}, err
-	}
-	for _, v := range storage.Chirps {
-		allChirps = append(allChirps, v)
-	}
-	sort.Slice(allChirps, func(i, j int) bool { return allChirps[i].Id < allChirps[j].Id })
-
-	return allChirps, nil
 }
 
 func (db *DB) ensure() error {
@@ -137,7 +60,7 @@ func (db *DB) loadDB() (DBstructure, error) {
 
 	data, err := os.ReadFile(db.path)
 	var databaseEntry = make(map[int]Chirp)
-	var databaseUsers = make(map[int]User)
+	var databaseUsers = make(map[int]DatabaseUser)
 	database := DBstructure{
 		Chirps: databaseEntry,
 		Users:  databaseUsers,

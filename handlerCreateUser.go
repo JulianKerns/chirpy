@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+
+	bcrypt "golang.org/x/crypto/bcrypt"
 )
 
 func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 
 	type parameters struct {
-		Content string `json:"email"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -20,17 +23,18 @@ func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, "Couldnt decode the Parameters")
 		return
 	}
-	//validated, err := validateChirp(params.Content)
-	//if err != nil {
-	//	respondError(w, http.StatusBadRequest, "Chirpy is too long")
-	//	return
-	//}
 
-	newUser, errCh := cfg.DB.CreateUser(params.Content)
-	if errCh != nil {
-		log.Println("could not add theUser to the database")
-
+	hash, errHash := bcrypt.GenerateFromPassword([]byte(params.Password), bcrypt.DefaultCost)
+	if errHash != nil {
+		log.Fatalln("could not hash the password correctly")
 	}
-	respondWithJSON(w, http.StatusCreated, newUser)
 
+	newUser, errCh := cfg.DB.CreateUser(params.Email, hash)
+	if errCh != nil {
+		respondError(w, http.StatusConflict, "Email already exists")
+		log.Println("could not add the User to the database, email already exists")
+
+	} else {
+		respondWithJSON(w, http.StatusCreated, newUser)
+	}
 }

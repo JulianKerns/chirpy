@@ -20,7 +20,7 @@ func validateChirp(body string) (string, error) {
 }
 func respondError(w http.ResponseWriter, code int, msg string) {
 	if code > 499 {
-		log.Printf("Respongind with 5XX error: %s", msg)
+		log.Printf("Responding with 5XX error: %s", msg)
 	}
 	type responseErr struct {
 		Error string `json:"error"`
