@@ -1,8 +1,10 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net/http"
+	"os"
 
 	database "github.com/JulianKerns/chirpy/internal/database"
 )
@@ -17,6 +19,13 @@ func main() {
 
 	mux := http.NewServeMux()
 	const filepath string = "/home/julian_k/workspace/github.com/JulianKerns/GoProjects/chirpy/database.json"
+
+	dbg := flag.Bool("debug", false, "Enable debug mode")
+	flag.Parse()
+	if *dbg {
+		os.Remove(filepath)
+	}
+
 	databaseJSON, err := database.NewDB(filepath)
 	if err != nil {
 		log.Fatalln("could not create the database.json file")
@@ -38,7 +47,11 @@ func main() {
 
 	mux.HandleFunc("POST /api/chirps", config.postChirp)
 
-	mux.HandleFunc("GET /api/chirps", config.getChirp)
+	mux.HandleFunc("GET /api/chirps", config.getChirps)
+
+	mux.HandleFunc("GET /api/chirps/{ID...}", config.getSpecificChirp)
+
+	mux.HandleFunc("POST /api/users", config.createUser)
 
 	corsMux := middlewareCors(mux)
 	server := &http.Server{

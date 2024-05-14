@@ -20,9 +20,17 @@ type Chirp struct {
 	Body string `json:"body"`
 }
 
+type User struct {
+	Id    int    `json:"id"`
+	Email string `json:"email"`
+}
+
 type DBstructure struct {
 	Chirps map[int]Chirp `json:"chirps"`
+	Users  map[int]User  `json:"users"`
 }
+
+var userCounter int = 1
 
 var idCounter int = 1
 
@@ -43,6 +51,25 @@ func NewDB(path string) (*DB, error) {
 		return &DB{}, errDB
 	}
 	return newDB, nil
+}
+
+func (db *DB) CreateUser(email string) (User, error) {
+	if email == "" {
+		return User{}, errors.New("cant create a User with no email")
+	}
+	NewUser := User{
+		Id:    userCounter,
+		Email: email,
+	}
+	storage, err := db.loadDB()
+	if err != nil {
+		log.Printf("%s", err)
+		return User{}, err
+	}
+	storage.Users[userCounter] = NewUser
+	increase(&userCounter)
+	db.writeDB(storage)
+	return NewUser, nil
 }
 
 func (db *DB) CreateChirp(body string) (Chirp, error) {
@@ -110,7 +137,11 @@ func (db *DB) loadDB() (DBstructure, error) {
 
 	data, err := os.ReadFile(db.path)
 	var databaseEntry = make(map[int]Chirp)
-	database := DBstructure{databaseEntry}
+	var databaseUsers = make(map[int]User)
+	database := DBstructure{
+		Chirps: databaseEntry,
+		Users:  databaseUsers,
+	}
 	if data == nil {
 		return database, nil
 	}
