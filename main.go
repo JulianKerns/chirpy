@@ -2,19 +2,28 @@ package main
 
 import (
 	"flag"
+
 	"log"
 	"net/http"
 	"os"
 
 	database "github.com/JulianKerns/chirpy/internal/database"
+	"github.com/joho/godotenv"
 )
 
 type apiConfig struct {
 	fileServerHits int
 	DB             *database.DB
+	JWTSecret      string
 }
 
 func main() {
+	err := godotenv.Load("secret.env")
+	if err != nil {
+		log.Println("could not load the environment variables")
+	}
+	jwtSecret := os.Getenv("JWT_SECRET")
+
 	const port = "8080"
 
 	mux := http.NewServeMux()
@@ -33,6 +42,7 @@ func main() {
 	config := apiConfig{
 		fileServerHits: 0,
 		DB:             databaseJSON,
+		JWTSecret:      jwtSecret,
 	}
 
 	mux.Handle("/app/", config.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir("./app")))))
@@ -53,7 +63,10 @@ func main() {
 
 	mux.HandleFunc("POST /api/users", config.createUser)
 
-	mux.HandleFunc("POST /api/login", config.loginUser)
+	//mux.HandleFunc("POST /api/login", config.loginUser)
+	mux.HandleFunc("POST /api/login", config.loginUserToken)
+
+	mux.HandleFunc("PUT /api/users", config.updateUser)
 
 	corsMux := middlewareCors(mux)
 	server := &http.Server{
