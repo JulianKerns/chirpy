@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"log"
 	"strconv"
 	"time"
 
@@ -10,34 +11,40 @@ import (
 
 type UserClaims struct {
 	jwt.RegisteredClaims
+	Email    string `json:"email"`
+	Password []byte `json:"password"`
 }
 
-func (cfg *apiConfig) createToken(expiresAt time.Duration, userId int) (*jwt.Token, error) {
+func (cfg *apiConfig) createToken(expiresAt time.Duration, userId int, email string, password []byte) (string, error) {
 	expiringTime := expiresAt
-	if expiresAt == 0 || expiresAt > 24 {
-		expiringTime = 24
+	if expiresAt == time.Second*0 || expiresAt > time.Second*86400 {
+		expiringTime = time.Second * 86400
 	}
 	userIdString := strconv.Itoa(userId)
-	claims := UserClaims{
-		jwt.RegisteredClaims{
-			Issuer:    "chripy",
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiringTime)),
-			Subject:   userIdString,
-		},
+
+	now := time.Now().UTC()
+	expires := now.Add(expiringTime)
+
+	if now.IsZero() || expires.IsZero() {
+		return "", errors.New("time components are failing")
 	}
-	var emptyToken *jwt.Token
-	newToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	if newToken == emptyToken {
-		return emptyToken, errors.New("could not create a Token")
+	claims := jwt.RegisteredClaims{
+		Issuer:    "chirpy",
+		IssuedAt:  jwt.NewNumericDate(now),
+		ExpiresAt: jwt.NewNumericDate(expires),
+		Subject:   userIdString,
 	}
 
-	return newToken, nil
-}
+	newToken := jwt.NewWithClaims(jwt.SigningMethodHS256, UserClaims{
+		RegisteredClaims: claims,
+		Email:            email,
+		Password:         password,
+	})
 
-func (cfg *apiConfig) signToken(token *jwt.Token) (string, error) {
-	signedToken, err := token.SignedString([]byte(cfg.JWTSecret))
+	if newToken == nil {
+		return "", errors.New("could not create a Token")
+	}
+	signedToken, err := newToken.SignedString([]byte(cfg.JWTSecret))
 	if err != nil {
 		return "", err
 	}
@@ -46,12 +53,26 @@ func (cfg *apiConfig) signToken(token *jwt.Token) (string, error) {
 }
 
 func (cfg *apiConfig) verifyToken(stringToken string) (*jwt.Token, error) {
-	verifiedToken, err := jwt.ParseWithClaims(stringToken, UserClaims{}, jwt.Keyfunc(func(token *jwt.Token) (interface{}, error) {
+	var userClaim UserClaims
+	verifiedToken, err := jwt.ParseWithClaims(stringToken, &userClaim, func(token *jwt.Token) (interface{}, error) {
 		return []byte(cfg.JWTSecret), nil
-	}))
-	var emptyToken *jwt.Token
+	})
 	if err != nil {
-		return emptyToken, err
+		//validator := jwt.NewValidator()
+		//validateError := validator.Validate(verifiedToken.Claims)
+		//if validateError != nil {
+		//	if errors.Is(validateError, jwt.ErrTokenExpired) {
+		//		return nil, errors.New("token is expired")
+		//	} else if errors.Is(validateError, jwt.ErrTokenUnverifiable) {
+		//		return nil, errors.New("bad token")
+		//	}
+		//	return nil, err
+		//}
+		return nil, err
+	}
+	if !verifiedToken.Valid {
+		log.Println("invalid Token")
+		return nil, err
 	}
 	return verifiedToken, nil
 }

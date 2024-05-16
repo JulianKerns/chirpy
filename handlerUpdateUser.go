@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+
 	"log"
 	"net/http"
 	"strconv"
@@ -27,6 +28,7 @@ func (cfg *apiConfig) updateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sentToken := r.Header.Get("Authorization")
+
 	strippedToken, ok := strings.CutPrefix(sentToken, "Bearer ")
 	if !ok {
 		log.Println("could not remove prefix")
@@ -34,15 +36,20 @@ func (cfg *apiConfig) updateUser(w http.ResponseWriter, r *http.Request) {
 
 	verifiedToken, err := cfg.verifyToken(strippedToken)
 	if err != nil {
-		respondError(w, http.StatusUnauthorized, "Bad authentication Token")
+		log.Println(err)
+
+		respondError(w, http.StatusUnauthorized, "Bad Authentication Token")
+		return
 	}
 	userIdString, err := verifiedToken.Claims.GetSubject()
 	if err != nil {
+		log.Println("could not get the user id")
 		log.Println(err)
 		return
 	}
 	userIdInt, err := strconv.Atoi(userIdString)
 	if err != nil {
+		log.Println("could not transform the id strng to an int")
 		log.Println(err)
 		return
 	}
