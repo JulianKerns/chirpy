@@ -15,10 +15,10 @@ type UserClaims struct {
 	Password []byte `json:"password"`
 }
 
-func (cfg *apiConfig) createToken(expiresAt time.Duration, userId int, email string, password []byte) (string, error) {
+func (cfg *apiConfig) createToken(expiresAt time.Duration, userId int) (string, error) {
 	expiringTime := expiresAt
-	if expiresAt == time.Second*0 || expiresAt > time.Second*86400 {
-		expiringTime = time.Second * 86400
+	if expiresAt == time.Second*0 || expiresAt > time.Second*3600 {
+		expiringTime = time.Second * 3600
 	}
 	userIdString := strconv.Itoa(userId)
 
@@ -37,8 +37,6 @@ func (cfg *apiConfig) createToken(expiresAt time.Duration, userId int, email str
 
 	newToken := jwt.NewWithClaims(jwt.SigningMethodHS256, UserClaims{
 		RegisteredClaims: claims,
-		Email:            email,
-		Password:         password,
 	})
 
 	if newToken == nil {

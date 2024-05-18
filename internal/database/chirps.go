@@ -28,7 +28,7 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
 		Body: body,
 	}
 
-	storage, err := db.loadDB()
+	storage, err := db.LoadDB()
 	if err != nil {
 		log.Printf("%s", err)
 		return Chirp{}, err
@@ -43,7 +43,7 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
 }
 
 func (db *DB) GetChirps() ([]Chirp, error) {
-	storage, err := db.loadDB()
+	storage, err := db.LoadDB()
 	allChirps := []Chirp{}
 	if err != nil {
 		return []Chirp{}, err

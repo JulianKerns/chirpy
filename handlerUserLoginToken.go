@@ -40,16 +40,19 @@ func (cfg *apiConfig) loginUserToken(w http.ResponseWriter, r *http.Request) {
 
 	}
 	if match {
-		signedToken, err := cfg.createToken(params.ExpiresInSeconds, specificUser.Id, params.Email, []byte(params.Password))
+		signedToken, err := cfg.createToken(params.ExpiresInSeconds, specificUser.Id)
 		if err != nil {
 			log.Println(err)
 			return
 		}
 
+		refreshToken := specificUser.RefreshToken
+
 		respondWithJSON(w, http.StatusOK, database.RespondUser{
-			Id:    specificUser.Id,
-			Email: specificUser.Email,
-			Token: signedToken,
+			Id:           specificUser.Id,
+			Email:        specificUser.Email,
+			Token:        signedToken,
+			RefreshToken: refreshToken,
 		})
 
 	} else {

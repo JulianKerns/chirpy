@@ -63,6 +63,8 @@ func main() {
 
 	mux.HandleFunc("POST /api/users", config.createUser)
 
+	mux.HandleFunc("POST /api/refresh", config.refreshingAccess)
+
 	//mux.HandleFunc("POST /api/login", config.loginUser)
 	mux.HandleFunc("POST /api/login", config.loginUserToken)
 

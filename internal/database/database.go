@@ -54,7 +54,7 @@ func (db *DB) writeDB(dbStructure DBstructure) error {
 	return nil
 }
 
-func (db *DB) loadDB() (DBstructure, error) {
+func (db *DB) LoadDB() (DBstructure, error) {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 

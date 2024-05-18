@@ -1,6 +1,8 @@
 package database
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"log"
 	"sort"
@@ -9,31 +11,40 @@ import (
 var userCounter int = 1
 
 type DatabaseUser struct {
-	Id       int    `json:"id"`
-	Email    string `json:"email"`
-	Password []byte `json:"password"`
+	Id           int    `json:"id"`
+	Email        string `json:"email"`
+	Password     []byte `json:"password"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 type RespondUser struct {
-	Id    int    `json:"id"`
-	Email string `json:"email"`
-	Token string `json:"token"`
+	Id           int    `json:"id"`
+	Email        string `json:"email"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refersh_token"`
 }
 
 func (db *DB) CreateUser(email string, password []byte) (RespondUser, error) {
 	if email == "" {
 		return RespondUser{}, errors.New("cant create a User with no email")
 	}
+
+	refreshToken, err := db.GenerateRefreshTokenString()
+	if err != nil {
+		return RespondUser{}, err
+	}
+
 	NewUser := DatabaseUser{
-		Id:       userCounter,
-		Email:    email,
-		Password: password,
+		Id:           userCounter,
+		Email:        email,
+		Password:     password,
+		RefreshToken: refreshToken,
 	}
 	RUser := RespondUser{
 		Id:    userCounter,
 		Email: email,
 	}
-	storage, err := db.loadDB()
+	storage, err := db.LoadDB()
 	if err != nil {
 		log.Printf("%s", err)
 		return RespondUser{}, err
@@ -56,8 +67,19 @@ func (db *DB) CreateUser(email string, password []byte) (RespondUser, error) {
 	return RUser, nil
 }
 
+func (db *DB) GenerateRefreshTokenString() (string, error) {
+	sliceOfBytes := make([]byte, 32)
+	_, err := rand.Read(sliceOfBytes)
+	if err != nil {
+		log.Println("could not read the random string")
+		return "", err
+	}
+	byteToString := hex.EncodeToString(sliceOfBytes)
+	return byteToString, nil
+}
+
 func (db *DB) GetUsers() ([]DatabaseUser, error) {
-	storage, err := db.loadDB()
+	storage, err := db.LoadDB()
 	if err != nil {
 		return []DatabaseUser{}, err
 	}
@@ -71,7 +93,7 @@ func (db *DB) GetUsers() ([]DatabaseUser, error) {
 }
 
 func (db *DB) GetUsersbyID(id int) (DatabaseUser, error) {
-	storage, err := db.loadDB()
+	storage, err := db.LoadDB()
 	if err != nil {
 		return DatabaseUser{}, err
 	}
@@ -92,7 +114,7 @@ func (db *DB) GetUsersbyID(id int) (DatabaseUser, error) {
 }
 
 func (db *DB) UpdateUserByID(id int, email string, password []byte) error {
-	storage, err := db.loadDB()
+	storage, err := db.LoadDB()
 	if err != nil {
 		return err
 	}
