@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	database "github.com/JulianKerns/chirpy/internal/database"
 )
@@ -15,7 +16,7 @@ func (cfg *apiConfig) refreshingAccess(w http.ResponseWriter, r *http.Request) {
 		log.Println("could not remove prefix")
 	}
 	var specificUser database.DatabaseUser
-	var match bool
+	now := time.Now()
 
 	allUsers, err := cfg.DB.GetUsers()
 	if err != nil {
@@ -26,11 +27,11 @@ func (cfg *apiConfig) refreshingAccess(w http.ResponseWriter, r *http.Request) {
 	for _, user := range allUsers {
 		if strippedRefreshToken == user.RefreshToken {
 			specificUser = user
-			match = true
+
 		}
 	}
 
-	if match {
+	if now.Before(specificUser.RefreshExpirationDays) {
 		accessToken, err := cfg.createToken(0, specificUser.Id)
 		if err != nil {
 			log.Println(err)
@@ -39,7 +40,7 @@ func (cfg *apiConfig) refreshingAccess(w http.ResponseWriter, r *http.Request) {
 		respondWithJSON(w, http.StatusOK, database.RespondUser{Token: accessToken})
 
 	} else {
-		respondError(w, http.StatusUnauthorized, "no matching RefreshToken found")
+		respondError(w, http.StatusUnauthorized, "no matching RefreshToken found or expired RefreshToken")
 	}
 
 }

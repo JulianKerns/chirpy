@@ -65,6 +65,8 @@ func main() {
 
 	mux.HandleFunc("POST /api/refresh", config.refreshingAccess)
 
+	mux.HandleFunc("POST /api/revoke", config.revokeUserRToken)
+
 	//mux.HandleFunc("POST /api/login", config.loginUser)
 	mux.HandleFunc("POST /api/login", config.loginUserToken)
 

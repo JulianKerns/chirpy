@@ -45,14 +45,22 @@ func (cfg *apiConfig) loginUserToken(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 			return
 		}
-
-		refreshToken := specificUser.RefreshToken
+		refreshTokenString, err := cfg.DB.GenerateRefreshTokenString()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		errStoreToken := cfg.DB.StoreRTokenAndExpiration(refreshTokenString, specificUser.Id)
+		if errStoreToken != nil {
+			log.Println(err)
+			return
+		}
 
 		respondWithJSON(w, http.StatusOK, database.RespondUser{
 			Id:           specificUser.Id,
 			Email:        specificUser.Email,
 			Token:        signedToken,
-			RefreshToken: refreshToken,
+			RefreshToken: refreshTokenString,
 		})
 
 	} else {

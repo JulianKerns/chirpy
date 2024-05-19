@@ -6,22 +6,24 @@ import (
 	"errors"
 	"log"
 	"sort"
+	"time"
 )
 
 var userCounter int = 1
 
 type DatabaseUser struct {
-	Id           int    `json:"id"`
-	Email        string `json:"email"`
-	Password     []byte `json:"password"`
-	RefreshToken string `json:"refresh_token"`
+	Id                    int       `json:"id"`
+	Email                 string    `json:"email"`
+	Password              []byte    `json:"password"`
+	RefreshToken          string    `json:"refresh_token"`
+	RefreshExpirationDays time.Time `json:"refresh_expiration_days"`
 }
 
 type RespondUser struct {
 	Id           int    `json:"id"`
 	Email        string `json:"email"`
 	Token        string `json:"token"`
-	RefreshToken string `json:"refersh_token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 func (db *DB) CreateUser(email string, password []byte) (RespondUser, error) {
@@ -29,16 +31,10 @@ func (db *DB) CreateUser(email string, password []byte) (RespondUser, error) {
 		return RespondUser{}, errors.New("cant create a User with no email")
 	}
 
-	refreshToken, err := db.GenerateRefreshTokenString()
-	if err != nil {
-		return RespondUser{}, err
-	}
-
 	NewUser := DatabaseUser{
-		Id:           userCounter,
-		Email:        email,
-		Password:     password,
-		RefreshToken: refreshToken,
+		Id:       userCounter,
+		Email:    email,
+		Password: password,
 	}
 	RUser := RespondUser{
 		Id:    userCounter,
@@ -76,6 +72,61 @@ func (db *DB) GenerateRefreshTokenString() (string, error) {
 	}
 	byteToString := hex.EncodeToString(sliceOfBytes)
 	return byteToString, nil
+}
+
+func (db *DB) StoreRTokenAndExpiration(rTokenString string, userId int) error {
+	storage, err := db.LoadDB()
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	refreshExpiration := time.Now().UTC().Add(time.Hour * 1440)
+
+	specificUser := storage.Users[userId]
+	specificUser.RefreshToken = rTokenString
+	specificUser.RefreshExpirationDays = refreshExpiration
+	storage.Users[userId] = specificUser
+	writeErr := db.writeDB(storage)
+	if writeErr != nil {
+		log.Println(writeErr)
+		return writeErr
+	}
+	return nil
+}
+
+func (db *DB) RevokeRToken(rTokenString string) error {
+	allUsers, err := db.GetUsers()
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	var specificUser DatabaseUser
+	var match bool
+	for _, user := range allUsers {
+		if user.RefreshToken == rTokenString {
+			specificUser = user
+			match = true
+		}
+	}
+	if match {
+		storage, err := db.LoadDB()
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+		specificUser.RefreshToken = ""
+		storage.Users[specificUser.Id] = specificUser
+		writeErr := db.writeDB(storage)
+		if writeErr != nil {
+			log.Println(writeErr)
+			return writeErr
+		}
+		return nil
+
+	} else {
+		return errors.New("could not find a User with this specific RefreshToken")
+	}
+
 }
 
 func (db *DB) GetUsers() ([]DatabaseUser, error) {
