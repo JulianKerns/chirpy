@@ -5,8 +5,6 @@ import (
 
 	"log"
 	"net/http"
-	"strconv"
-	"strings"
 
 	database "github.com/JulianKerns/chirpy/internal/database"
 
@@ -29,27 +27,8 @@ func (cfg *apiConfig) updateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	sentToken := r.Header.Get("Authorization")
 
-	strippedToken, ok := strings.CutPrefix(sentToken, "Bearer ")
-	if !ok {
-		log.Println("could not remove prefix")
-	}
-
-	verifiedToken, err := cfg.verifyToken(strippedToken)
+	validatedUserId, err := cfg.ValidateTokenGetId(w, sentToken)
 	if err != nil {
-		log.Println(err)
-
-		respondError(w, http.StatusUnauthorized, "Bad Authentication Token")
-		return
-	}
-	userIdString, err := verifiedToken.Claims.GetSubject()
-	if err != nil {
-		log.Println("could not get the user id")
-		log.Println(err)
-		return
-	}
-	userIdInt, err := strconv.Atoi(userIdString)
-	if err != nil {
-		log.Println("could not transform the id strng to an int")
 		log.Println(err)
 		return
 	}
@@ -58,13 +37,13 @@ func (cfg *apiConfig) updateUser(w http.ResponseWriter, r *http.Request) {
 	if errHash != nil {
 		log.Fatalln("could not hash the password correctly")
 	}
-	errUpdate := cfg.DB.UpdateUserByID(userIdInt, params.Email, []byte(hash))
+	errUpdate := cfg.DB.UpdateUserByID(validatedUserId, params.Email, []byte(hash))
 	if errUpdate != nil {
 		log.Println("could not update the user")
 		respondError(w, http.StatusUnauthorized, "access to this user is not allowed")
 	}
 	respondWithJSON(w, http.StatusOK, database.RespondUser{
-		Id:    userIdInt,
+		Id:    validatedUserId,
 		Email: params.Email,
 	})
 

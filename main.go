@@ -67,7 +67,8 @@ func main() {
 
 	mux.HandleFunc("POST /api/revoke", config.revokeUserRToken)
 
-	//mux.HandleFunc("POST /api/login", config.loginUser)
+	mux.HandleFunc("DELETE /api/chirps/{ID...}", config.deleteUserChirp)
+
 	mux.HandleFunc("POST /api/login", config.loginUserToken)
 
 	mux.HandleFunc("PUT /api/users", config.updateUser)

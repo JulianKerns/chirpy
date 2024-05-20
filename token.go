@@ -3,7 +3,9 @@ package main
 import (
 	"errors"
 	"log"
+	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	jwt "github.com/golang-jwt/jwt/v5"
@@ -73,4 +75,31 @@ func (cfg *apiConfig) verifyToken(stringToken string) (*jwt.Token, error) {
 		return nil, err
 	}
 	return verifiedToken, nil
+}
+
+func (cfg *apiConfig) ValidateTokenGetId(w http.ResponseWriter, sentToken string) (int, error) {
+	strippedToken, ok := strings.CutPrefix(sentToken, "Bearer ")
+	if !ok {
+		log.Println("could not remove prefix")
+	}
+
+	verifiedToken, err := cfg.verifyToken(strippedToken)
+	if err != nil {
+		log.Println(err)
+		respondError(w, http.StatusUnauthorized, "Bad Authentication Token")
+		return 0, err
+	}
+	userIdString, err := verifiedToken.Claims.GetSubject()
+	if err != nil {
+		log.Println("could not get the user id")
+		log.Println(err)
+		return 0, err
+	}
+	userIdInt, err := strconv.Atoi(userIdString)
+	if err != nil {
+		log.Println("could not transform the id strng to an int")
+		log.Println(err)
+		return 0, err
+	}
+	return userIdInt, nil
 }

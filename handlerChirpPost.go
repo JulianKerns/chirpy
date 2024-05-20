@@ -20,13 +20,21 @@ func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, "Couldnt decode the Parameters")
 		return
 	}
+	sentToken := r.Header.Get("Authorization")
+
+	validatedUserId, err := cfg.ValidateTokenGetId(w, sentToken)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
 	validated, err := validateChirp(params.Content)
 	if err != nil {
 		respondError(w, http.StatusBadRequest, "Chirpy is too long")
 		return
 	}
 
-	newChirp, errCh := cfg.DB.CreateChirp(validated)
+	newChirp, errCh := cfg.DB.CreateUserChirp(validated, validatedUserId)
 
 	if errCh != nil {
 		log.Println("could not add the Chirp to the database")
