@@ -9,14 +9,28 @@ import (
 )
 
 func (cfg *apiConfig) getChirps(w http.ResponseWriter, r *http.Request) {
+	authorIdString := r.URL.Query().Get("author_id")
 
-	chirps, err := cfg.DB.GetChirps()
-	if err != nil {
-		respondError(w, http.StatusBadRequest, "Could not retrieve the Chirps from the database")
-		log.Println(err)
+	if authorIdString == "" {
+		chirps, err := cfg.DB.GetChirps()
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "Could not retrieve the Chirps from the database")
+			log.Println(err)
+		}
+		respondWithJSON(w, http.StatusOK, chirps)
+	} else {
+		authorId, err := strconv.Atoi(authorIdString)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		userChirps, err := cfg.DB.GetUserChirps(authorId)
+		if err != nil {
+			log.Println(err)
+			respondError(w, http.StatusNotFound, "this user does not exist or has no Chirps posted")
+		}
+		respondWithJSON(w, http.StatusOK, userChirps)
 	}
-	respondWithJSON(w, http.StatusOK, chirps)
-
 }
 
 func (cfg *apiConfig) getSpecificChirp(w http.ResponseWriter, r *http.Request) {

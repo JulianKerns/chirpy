@@ -15,6 +15,7 @@ type apiConfig struct {
 	fileServerHits int
 	DB             *database.DB
 	JWTSecret      string
+	APIKey         string
 }
 
 func main() {
@@ -23,6 +24,7 @@ func main() {
 		log.Println("could not load the environment variables")
 	}
 	jwtSecret := os.Getenv("JWT_SECRET")
+	apiKey := os.Getenv("POLKA_API_KEY")
 
 	const port = "8080"
 
@@ -43,6 +45,7 @@ func main() {
 		fileServerHits: 0,
 		DB:             databaseJSON,
 		JWTSecret:      jwtSecret,
+		APIKey:         apiKey,
 	}
 
 	mux.Handle("/app/", config.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir("./app")))))
