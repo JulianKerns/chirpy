@@ -15,6 +15,7 @@ type DatabaseUser struct {
 	Id                    int       `json:"id"`
 	Email                 string    `json:"email"`
 	Password              []byte    `json:"password"`
+	IsChirpyRed           bool      `json:"is_chirpy_red"`
 	RefreshToken          string    `json:"refresh_token"`
 	RefreshExpirationDays time.Time `json:"refresh_expiration_days"`
 }
@@ -22,6 +23,7 @@ type DatabaseUser struct {
 type RespondUser struct {
 	Id           int    `json:"id"`
 	Email        string `json:"email"`
+	IsChirpyRed  bool   `json:"is_chirpy_red"`
 	Token        string `json:"token"`
 	RefreshToken string `json:"refresh_token"`
 }
@@ -127,6 +129,27 @@ func (db *DB) RevokeRToken(rTokenString string) error {
 		return errors.New("could not find a User with this specific RefreshToken")
 	}
 
+}
+
+func (db *DB) AssignMemberSatusByID(userId int) error {
+	storage, err := db.LoadDB()
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	specificUser, ok := storage.Users[userId]
+	if !ok {
+		return errors.New("user does not exist")
+	}
+	specificUser.IsChirpyRed = true
+	storage.Users[userId] = specificUser
+	writeErr := db.writeDB(storage)
+
+	if writeErr != nil {
+		log.Println(writeErr)
+		return writeErr
+	}
+	return nil
 }
 
 func (db *DB) GetUsers() ([]DatabaseUser, error) {

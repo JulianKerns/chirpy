@@ -73,6 +73,8 @@ func main() {
 
 	mux.HandleFunc("PUT /api/users", config.updateUser)
 
+	mux.HandleFunc("POST /api/polka/webhooks", config.processingPolkaWebhook)
+
 	corsMux := middlewareCors(mux)
 	server := &http.Server{
 		Addr:    ":" + port,
