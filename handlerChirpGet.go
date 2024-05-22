@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 
 	database "github.com/JulianKerns/chirpy/internal/database"
@@ -10,27 +11,66 @@ import (
 
 func (cfg *apiConfig) getChirps(w http.ResponseWriter, r *http.Request) {
 	authorIdString := r.URL.Query().Get("author_id")
+	sortCommand := r.URL.Query().Get("sort")
 
 	if authorIdString == "" {
-		chirps, err := cfg.DB.GetChirps()
-		if err != nil {
-			respondError(w, http.StatusBadRequest, "Could not retrieve the Chirps from the database")
-			log.Println(err)
+		if sortCommand == "asc" || sortCommand == "" {
+			chirps, err := cfg.DB.GetChirps()
+			if err != nil {
+				log.Println(err)
+				respondError(w, http.StatusNotFound, "this user does not exist or has no Chirps posted")
+				return
+			}
+			sort.Slice(chirps, func(i, j int) bool { return chirps[i].Id < chirps[j].Id })
+			respondWithJSON(w, http.StatusOK, chirps)
+			return
+
+		} else if sortCommand == "desc" {
+			chirps, err := cfg.DB.GetChirps()
+			if err != nil {
+				log.Println(err)
+				respondError(w, http.StatusNotFound, "this user does not exist or has no Chirps posted")
+				return
+			}
+			sort.Slice(chirps, func(i, j int) bool { return chirps[i].Id > chirps[j].Id })
+			respondWithJSON(w, http.StatusOK, chirps)
+			return
+		} else {
+			respondError(w, http.StatusBadRequest, "Bad sort-query parameter")
 		}
-		respondWithJSON(w, http.StatusOK, chirps)
 	} else {
 		authorId, err := strconv.Atoi(authorIdString)
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		userChirps, err := cfg.DB.GetUserChirps(authorId)
-		if err != nil {
-			log.Println(err)
-			respondError(w, http.StatusNotFound, "this user does not exist or has no Chirps posted")
+
+		if sortCommand == "asc" || sortCommand == "" {
+			userChirps, err := cfg.DB.GetUserChirps(authorId)
+			if err != nil {
+				log.Println(err)
+				respondError(w, http.StatusNotFound, "this user does not exist or has no Chirps posted")
+				return
+			}
+			sort.Slice(userChirps, func(i, j int) bool { return userChirps[i].Id < userChirps[j].Id })
+			respondWithJSON(w, http.StatusOK, userChirps)
+			return
+
+		} else if sortCommand == "desc" {
+			userChirps, err := cfg.DB.GetUserChirps(authorId)
+			if err != nil {
+				log.Println(err)
+				respondError(w, http.StatusNotFound, "this user does not exist or has no Chirps posted")
+				return
+			}
+			sort.Slice(userChirps, func(i, j int) bool { return userChirps[i].Id > userChirps[j].Id })
+			respondWithJSON(w, http.StatusOK, userChirps)
+			return
+		} else {
+			respondError(w, http.StatusBadRequest, "Bad sort-query parameter")
 		}
-		respondWithJSON(w, http.StatusOK, userChirps)
 	}
+
 }
 
 func (cfg *apiConfig) getSpecificChirp(w http.ResponseWriter, r *http.Request) {

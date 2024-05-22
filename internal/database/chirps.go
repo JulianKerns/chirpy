@@ -3,7 +3,6 @@ package database
 import (
 	"errors"
 	"log"
-	"sort"
 	"sync"
 )
 
@@ -80,7 +79,7 @@ func (db *DB) GetUserChirps(authorId int) ([]Chirp, error) {
 		}
 	}
 	if chirpFound {
-		sort.Slice(allUserChirps, func(i, j int) bool { return allUserChirps[i].Id < allUserChirps[j].Id })
+		//sort.Slice(allUserChirps, func(i, j int) bool { return allUserChirps[i].Id < allUserChirps[j].Id })
 		return allUserChirps, nil
 
 	} else {
@@ -96,7 +95,7 @@ func (db *DB) GetChirps() ([]Chirp, error) {
 	for _, v := range storage.Chirps {
 		allChirps = append(allChirps, v)
 	}
-	sort.Slice(allChirps, func(i, j int) bool { return allChirps[i].Id < allChirps[j].Id })
+	//sort.Slice(allChirps, func(i, j int) bool { return allChirps[i].Id < allChirps[j].Id })
 
 	return allChirps, nil
 }
