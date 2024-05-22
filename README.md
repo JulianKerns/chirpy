@@ -124,7 +124,7 @@ Posts a chirp when logged in
   "id": 1
 }
  ```
-### GET Request
+#### GET Request
 Returns a slice of all chirps present in the database.
 
 ##### Response Body
